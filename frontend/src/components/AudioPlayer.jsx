@@ -2,7 +2,7 @@ import { useRef, useState, useImperativeHandle, forwardRef, useEffect } from "re
 import { Play, Pause } from "lucide-react";
 import { msToClock } from "@/lib/exporters";
 
-export const AudioPlayer = forwardRef(({ src, filename }, ref) => {
+export const AudioPlayer = forwardRef(({ src, filename, onTime }, ref) => {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
@@ -50,7 +50,10 @@ export const AudioPlayer = forwardRef(({ src, filename }, ref) => {
       <audio
         ref={audioRef}
         src={src}
-        onTimeUpdate={(e) => setCurrent(e.target.currentTime)}
+        onTimeUpdate={(e) => {
+          setCurrent(e.target.currentTime);
+          onTime?.(e.target.currentTime * 1000);
+        }}
         onLoadedMetadata={(e) => setDuration(e.target.duration)}
         onEnded={() => setPlaying(false)}
       />

@@ -39,6 +39,7 @@ export default function App() {
   const [record, setRecord] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [currentMs, setCurrentMs] = useState(0);
   const playerRef = useRef(null);
 
   useEffect(() => {
@@ -147,7 +148,12 @@ export default function App() {
             <UploadZone file={file} onFile={handleFile} disabled={processing} />
 
             {audioUrl && (
-              <AudioPlayer ref={playerRef} src={audioUrl} filename={file?.name} />
+              <AudioPlayer
+                ref={playerRef}
+                src={audioUrl}
+                filename={file?.name}
+                onTime={setCurrentMs}
+              />
             )}
 
             {processing && (
@@ -190,7 +196,11 @@ export default function App() {
                     <DownloadActions record={record} />
                   </div>
                 </div>
-                <TranscriptWorkbench record={record} onSeek={handleSeek} />
+                <TranscriptWorkbench
+                  record={record}
+                  onSeek={handleSeek}
+                  currentMs={audioUrl ? currentMs : -1}
+                />
               </>
             )}
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Clock, FileAudio, Download, Trash2, Loader2, Eye } from "lucide-react";
+import { Clock, FileAudio, Download, Trash2, Loader2, Eye, Search, X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import { generateSRT, generateTXT, downloadBlob, msToClock } from "@/lib/exporters";
 import { toast } from "sonner";
+import { useMemo } from "react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -30,6 +31,24 @@ export const HistoryDrawer = ({ open, onOpenChange, onView, refreshKey }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState(null);
+  const [query, setQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState("all");
+
+  const filtered = useMemo(() => {
+    const now = Date.now();
+    const spans = { today: 1, week: 7, month: 30 };
+    return items.filter((it) => {
+      if (query.trim() && !(it.filename || "").toLowerCase().includes(query.toLowerCase().trim())) {
+        return false;
+      }
+      if (dateFilter !== "all") {
+        const days = spans[dateFilter];
+        const t = new Date(it.created_at).getTime();
+        if (isNaN(t) || now - t > days * 86400000) return false;
+      }
+      return true;
+    });
+  }, [items, query, dateFilter]);
 
   const load = async () => {
     setLoading(true);
@@ -110,7 +129,49 @@ export const HistoryDrawer = ({ open, onOpenChange, onView, refreshKey }) => {
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 space-y-3">
+        <div className="mt-5 space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              data-testid="history-search-input"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Поиск по имени файла..."
+              className="w-full pl-9 pr-9 py-2 rounded-lg bg-secondary border border-border text-sm outline-none focus:border-primary/50"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: "all", label: "Все" },
+              { id: "today", label: "Сегодня" },
+              { id: "week", label: "Неделя" },
+              { id: "month", label: "Месяц" },
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                data-testid={`history-filter-${opt.id}`}
+                onClick={() => setDateFilter(opt.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                  dateFilter === opt.id
+                    ? "bg-primary/15 text-primary border-primary/40"
+                    : "bg-secondary text-muted-foreground border-border hover:text-foreground"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-3">
           {loading && (
             <div className="flex justify-center py-10">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -123,7 +184,13 @@ export const HistoryDrawer = ({ open, onOpenChange, onView, refreshKey }) => {
             </p>
           )}
 
-          {items.map((item) => (
+          {!loading && items.length > 0 && filtered.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-10">
+              Ничего не найдено по заданным фильтрам.
+            </p>
+          )}
+
+          {filtered.map((item) => (
             <div
               key={item.id}
               data-testid="history-item-row"
