@@ -6,6 +6,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 import { generateSRT, generateTXT, downloadBlob, msToClock } from "@/lib/exporters";
 import { toast } from "sonner";
@@ -104,6 +105,9 @@ export const HistoryDrawer = ({ open, onOpenChange, onView, refreshKey }) => {
           <SheetTitle className="font-heading flex items-center gap-2">
             <Clock className="w-5 h-5 text-primary" /> История транскрибаций
           </SheetTitle>
+          <SheetDescription>
+            Прошлые транскрибации — просмотр и скачивание в TXT, SRT и JSON.
+          </SheetDescription>
         </SheetHeader>
 
         <div className="mt-6 space-y-3">

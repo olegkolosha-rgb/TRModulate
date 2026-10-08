@@ -1,0 +1,23 @@
+{
+  "summary": "Smoke-tested Modulate Velma-2 web app. Backend: /api/config, /api/transcribe (audio mp3 + video mp4), /api/history list/item/delete all return 200 with expected payloads. Frontend: UI loads, all 5 parameter switches visible, Transcribe button correctly disabled until file selected and enabled after, History drawer opens and shows 2 real records with TXT/SRT/JSON/delete buttons, theme toggle works. No console errors (only a11y DialogContent description warning).",
+  "tested_scope": ["backend", "frontend", "integration"],
+  "passed": [
+    "GET /api/config => api_key_configured=true, ffmpeg_available=true",
+    "POST /api/transcribe (mp3 sine tone) => 200, record with id/filename/duration_ms=3000/segment_count=0/result (empty utterances expected for tone)",
+    "POST /api/transcribe (mp4 testsrc+sine) => 200, ffmpeg video->audio extraction works, record created",
+    "GET /api/history => sorted desc by created_at, lightweight payload",
+    "GET /api/history/{id} => full record with result",
+    "DELETE /api/history/{id} => {deleted:true}; DELETE non-existent => 404",
+    "Frontend home page loads at REACT_APP_BACKEND_URL",
+    "All switches render: switch-diarization/emotions/accent/deepfake/pii-redaction",
+    "transcribe-submit-button disabled before file, enabled after set_input_files on file-dropzone-input",
+    "history-open-button opens history-drawer with history-item-row entries",
+    "theme-toggle-button toggles theme without error"
+  ],
+  "failed": [],
+  "action_items": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true,
+  "notes": "Minor non-blocking a11y warning in console: 'Missing Description or aria-describedby for DialogContent' in history drawer. Not a bug blocker. Modulate API responds in ~10-15s for 3s tone — real transcription latency is acceptable."
+}
