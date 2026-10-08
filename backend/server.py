@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -8,6 +8,7 @@ import re
 import subprocess
 import tempfile
 import shutil
+import asyncio
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional, Any, Dict
@@ -68,7 +69,7 @@ def _ffmpeg_to_mp3(input_path: str, bitrate: str, strip_video: bool) -> str:
     except subprocess.CalledProcessError as e:
         if os.path.exists(out_path):
             os.remove(out_path)
-        raise HTTPException(status_code=400, detail=f"Ошибка обработки аудио (ffmpeg): {e.stderr.decode()[:300]}")
+        raise RuntimeError(f"Ошибка обработки аудио (ffmpeg): {e.stderr.decode()[:300]}")
 
 
 def file_size_mb(path: str) -> float:
@@ -100,21 +101,69 @@ def send_to_modulate(audio_path: str, params: Dict[str, str]) -> Dict[str, Any]:
                     temp_compressed = _ffmpeg_to_mp3(current, bitrates[attempt], strip_video=False)
                     current = temp_compressed
                     continue
-                raise HTTPException(status_code=413, detail="Файл слишком большой даже после сжатия. Сократите длительность записи.")
+                raise RuntimeError("Файл слишком большой даже после сжатия. Сократите длительность записи.")
             resp.raise_for_status()
             return resp.json()
         except requests.exceptions.HTTPError as e:
             code = e.response.status_code if e.response is not None else 502
             detail = e.response.text[:300] if e.response is not None else str(e)
             if code == 401 or code == 403:
-                raise HTTPException(status_code=502, detail="Modulate API отклонил запрос: неверный или отсутствующий API-ключ.")
-            raise HTTPException(status_code=502, detail=f"Ошибка Modulate API ({code}): {detail}")
+                raise RuntimeError("Modulate API отклонил запрос: неверный или отсутствующий API-ключ.")
+            raise RuntimeError(f"Ошибка Modulate API ({code}): {detail}")
         except requests.exceptions.RequestException as e:
-            last_error = str(e)
-            raise HTTPException(status_code=502, detail=f"Не удалось связаться с Modulate API: {last_error}")
-        finally:
-            pass
-    raise HTTPException(status_code=502, detail="Не удалось выполнить транскрибацию.")
+            raise RuntimeError(f"Не удалось связаться с Modulate API: {e}")
+    raise RuntimeError("Не удалось выполнить транскрибацию.")
+
+
+def prepare_and_send(raw_path: str, ext: str, params: Dict[str, str]) -> Dict[str, Any]:
+    """Blocking pipeline: extract/compress audio then call Modulate. Runs in a thread."""
+    temp_files = []
+    audio_to_send = raw_path
+    try:
+        if ext in VIDEO_EXTENSIONS:
+            audio_to_send = _ffmpeg_to_mp3(raw_path, "64k", strip_video=True)
+            temp_files.append(audio_to_send)
+        elif ext in AUDIO_EXTENSIONS:
+            if not (ext == ".mp3" and file_size_mb(raw_path) < 100):
+                audio_to_send = _ffmpeg_to_mp3(raw_path, "64k", strip_video=False)
+                temp_files.append(audio_to_send)
+        return send_to_modulate(audio_to_send, params)
+    finally:
+        for f in temp_files:
+            if f and os.path.exists(f):
+                try:
+                    os.remove(f)
+                except OSError:
+                    pass
+
+
+async def run_job(job_id: str, raw_path: str, ext: str, params: Dict[str, str], filename: str):
+    try:
+        result = await asyncio.to_thread(prepare_and_send, raw_path, ext, params)
+        record = TranscriptionRecord(
+            filename=filename,
+            params=params,
+            duration_ms=int(result.get("duration_ms", 0) or 0),
+            segment_count=len(result.get("utterances", []) or []),
+            result=result,
+        )
+        await db.transcriptions.insert_one(record.model_dump())
+        await db.jobs.update_one(
+            {"id": job_id},
+            {"$set": {"status": "done", "record_id": record.id}},
+        )
+    except Exception as e:
+        logger.exception("Transcription job failed")
+        await db.jobs.update_one(
+            {"id": job_id},
+            {"$set": {"status": "error", "error": str(e)[:400]}},
+        )
+    finally:
+        if raw_path and os.path.exists(raw_path):
+            try:
+                os.remove(raw_path)
+            except OSError:
+                pass
 
 
 # ---------- Routes ----------
@@ -130,6 +179,7 @@ async def get_config():
 
 @api_router.post("/transcribe")
 async def transcribe(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     speaker_diarization: bool = Form(True),
     emotion_signal: bool = Form(True),
@@ -147,44 +197,39 @@ async def transcribe(
     with os.fdopen(fd, "wb") as out:
         shutil.copyfileobj(file.file, out)
 
-    temp_files = [raw_path]
-    audio_to_send = raw_path
-    try:
-        if ext in VIDEO_EXTENSIONS:
-            audio_to_send = _ffmpeg_to_mp3(raw_path, "64k", strip_video=True)
-            temp_files.append(audio_to_send)
-        elif ext in AUDIO_EXTENSIONS:
-            if not (ext == ".mp3" and file_size_mb(raw_path) < 100):
-                audio_to_send = _ffmpeg_to_mp3(raw_path, "64k", strip_video=False)
-                temp_files.append(audio_to_send)
+    bool2str = lambda b: "true" if b else "false"
+    params = {
+        "speaker_diarization": bool2str(speaker_diarization),
+        "emotion_signal": bool2str(emotion_signal),
+        "accent_signal": bool2str(accent_signal),
+        "deepfake_signal": bool2str(deepfake_signal),
+        "pii_phi_tagging": bool2str(pii_phi_tagging),
+    }
 
-        bool2str = lambda b: "true" if b else "false"
-        params = {
-            "speaker_diarization": bool2str(speaker_diarization),
-            "emotion_signal": bool2str(emotion_signal),
-            "accent_signal": bool2str(accent_signal),
-            "deepfake_signal": bool2str(deepfake_signal),
-            "pii_phi_tagging": bool2str(pii_phi_tagging),
-        }
+    job = {
+        "id": str(uuid.uuid4()),
+        "filename": file.filename or "audio",
+        "status": "processing",
+        "error": None,
+        "record_id": None,
+        "params": params,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.jobs.insert_one({**job})
+    background_tasks.add_task(run_job, job["id"], raw_path, ext, params, job["filename"])
+    return {"job_id": job["id"], "status": "processing"}
 
-        result = send_to_modulate(audio_to_send, params)
 
-        record = TranscriptionRecord(
-            filename=file.filename or "audio",
-            params=params,
-            duration_ms=int(result.get("duration_ms", 0) or 0),
-            segment_count=len(result.get("utterances", []) or []),
-            result=result,
-        )
-        await db.transcriptions.insert_one(record.model_dump())
-        return record.model_dump()
-    finally:
-        for f in temp_files:
-            if f and os.path.exists(f):
-                try:
-                    os.remove(f)
-                except OSError:
-                    pass
+@api_router.get("/jobs/{job_id}")
+async def get_job(job_id: str):
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Задача не найдена.")
+    resp = {"status": job["status"], "error": job.get("error")}
+    if job["status"] == "done" and job.get("record_id"):
+        rec = await db.transcriptions.find_one({"id": job["record_id"]}, {"_id": 0})
+        resp["record"] = rec
+    return resp
 
 
 @api_router.get("/history", response_model=List[Dict[str, Any]])

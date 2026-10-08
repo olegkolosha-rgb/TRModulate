@@ -41,6 +41,7 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [currentMs, setCurrentMs] = useState(0);
   const playerRef = useRef(null);
+  const pollRef = useRef(null);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -76,9 +77,27 @@ export default function App() {
       toast.error("Сначала выберите файл");
       return;
     }
+    if (pollRef.current) clearTimeout(pollRef.current);
     setProcessing(true);
     setRecord(null);
     const progressId = runProgress();
+
+    const finishOk = (rec) => {
+      clearInterval(progressId);
+      setProgress(100);
+      setStage("Готово");
+      setRecord(rec);
+      setRefreshKey((k) => k + 1);
+      toast.success("Транскрибация завершена");
+      setTimeout(() => setProcessing(false), 400);
+    };
+    const finishErr = (msg) => {
+      clearInterval(progressId);
+      setProgress(0);
+      toast.error(msg || "Ошибка при транскрибации");
+      setProcessing(false);
+    };
+
     try {
       const form = new FormData();
       form.append("file", file);
@@ -87,19 +106,26 @@ export default function App() {
       const { data } = await axios.post(`${API}/transcribe`, form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      clearInterval(progressId);
-      setProgress(100);
-      setStage("Готово");
-      setRecord(data);
-      setRefreshKey((k) => k + 1);
-      toast.success("Транскрибация завершена");
+      const jobId = data.job_id;
+
+      const poll = async () => {
+        try {
+          const { data: job } = await axios.get(`${API}/jobs/${jobId}`);
+          if (job.status === "done") {
+            finishOk(job.record);
+          } else if (job.status === "error") {
+            finishErr(job.error);
+          } else {
+            pollRef.current = setTimeout(poll, 2500);
+          }
+        } catch (err) {
+          pollRef.current = setTimeout(poll, 4000);
+        }
+      };
+      poll();
     } catch (e) {
-      clearInterval(progressId);
-      setProgress(0);
-      const detail = e?.response?.data?.detail || "Ошибка при транскрибации";
-      toast.error(detail);
-    } finally {
-      setTimeout(() => setProcessing(false), 400);
+      const detail = e?.response?.data?.detail || "Ошибка при отправке файла";
+      finishErr(detail);
     }
   };
 
