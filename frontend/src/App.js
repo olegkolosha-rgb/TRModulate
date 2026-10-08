@@ -107,8 +107,14 @@ export default function App() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       const jobId = data.job_id;
+      const startedAt = Date.now();
+      const MAX_WAIT_MS = 15 * 60 * 1000;
 
       const poll = async () => {
+        if (Date.now() - startedAt > MAX_WAIT_MS) {
+          finishErr("Превышено время ожидания. Попробуйте файл покороче или повторите позже.");
+          return;
+        }
         try {
           const { data: job } = await axios.get(`${API}/jobs/${jobId}`);
           if (job.status === "done") {

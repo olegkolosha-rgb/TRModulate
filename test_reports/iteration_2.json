@@ -1,0 +1,19 @@
+{
+  "summary": "Verified bug fix: transcription result now appears on main screen after background job completes. Backend: POST /api/transcribe returns job_id+processing immediately (<15s), GET /api/jobs/{id} polls to done with full record; GET /api/history & 404 cases pass. Frontend: uploaded test tone, clicked Транскрибировать, processing-progress-bar appeared, placeholder 'Результат транскрибации появится здесь' disappeared and transcript-workbench (with segments/full-text tabs, duration/segments metrics, TXT/SRT/JSON download buttons) rendered on main screen within ~25s. History drawer also shows the new record (6 items). No console errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_async_transcribe.py", "/app/test_reports/pytest/async_transcribe.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "BackgroundTasks + db.jobs pattern is fine for single-instance deployments; for multi-replica consider a proper task queue (Celery/RQ).",
+    "No TTL/cleanup for db.jobs — successful job docs accumulate indefinitely; add a TTL index or cleanup task.",
+    "Frontend poll never times out — if backend keeps returning errors forever, UI stays in 'processing'. Consider max poll duration (e.g. 10 min) with timeout toast."
+  ],
+  "updated_files": ["/app/backend/tests/test_async_transcribe.py", "/app/test_reports/iteration_2.json"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Created transient test_tone.mp3 jobs/records; backend test cleans up via DELETE /api/history/{id}. UI test created 1 extra history row (expected).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Async transcribe + polling flow verified end-to-end. 4/4 pytest green. Modulate real latency for 3s tone was ~15-20s in this run.",
+  "rca of the issue": "Previous bug: synchronous POST /api/transcribe exceeded gateway timeout (~30s) while real Modulate takes 40-60s. Backend still persisted the record to db.transcriptions, so it only showed up in History. Fix: switched to BackgroundTasks + GET /api/jobs/{id} polling; frontend polls every 2.5s and calls setRecord(job.record) on 'done', which renders TranscriptWorkbench. Verified: placeholder before=True, after=False; workbench visible with all data-testids."
+}
