@@ -1,0 +1,144 @@
+{
+  "project_title": "Modulate Velma-2 STT - Audio Analytics & Transcription Studio",
+  "app_type": "hybrid_fullstack",
+  "language": "ru",
+  "theme_strategy": {
+    "default_mode": "dark",
+    "theme_toggle": true,
+    "concept": "Dark Tactical Acoustic Workbench (Deep Slate/Charcoal background with Cyan/Indigo acoustic accents, subtle grid lines, high contrast typography, and vibrant emotion/speaker pill badges)."
+  },
+  "typography": {
+    "heading_font": "Outfit, sans-serif",
+    "body_font": "Inter, sans-serif",
+    "mono_font": "JetBrains Mono, monospace",
+    "hierarchy": {
+      "h1": "text-3xl sm:text-4xl font-bold tracking-tight",
+      "h2": "text-xl sm:text-2xl font-semibold tracking-tight",
+      "h3": "text-lg font-medium",
+      "body": "text-sm leading-relaxed",
+      "mono_label": "font-mono text-xs uppercase tracking-widest text-muted-foreground"
+    }
+  },
+  "colors": {
+    "archetype": "PERFORMANCE_PRO_TACTICAL_ACOUSTIC",
+    "background": "hsl(224, 25%, 6%)",
+    "foreground": "hsl(210, 20%, 98%)",
+    "card_bg": "hsl(224, 22%, 9%)",
+    "card_border": "hsl(224, 15%, 18%)",
+    "primary": "hsl(190, 95%, 48%)",
+    "primary_foreground": "hsl(224, 25%, 6%)",
+    "secondary": "hsl(224, 18%, 15%)",
+    "secondary_foreground": "hsl(210, 20%, 95%)",
+    "accent_cyan": "#06b6d4",
+    "accent_indigo": "#6366f1",
+    "accent_amber": "#f59e0b",
+    "accent_emerald": "#10b981",
+    "accent_rose": "#f43f5e",
+    "speakers": [
+      { "id": "SPEAKER_00", "bg": "bg-cyan-500/15", "text": "text-cyan-400", "border": "border-cyan-500/30" },
+      { "id": "SPEAKER_01", "bg": "bg-purple-500/15", "text": "text-purple-400", "border": "border-purple-500/30" },
+      { "id": "SPEAKER_02", "bg": "bg-emerald-500/15", "text": "text-emerald-400", "border": "border-emerald-500/30" },
+      { "id": "SPEAKER_03", "bg": "bg-amber-500/15", "text": "text-amber-400", "border": "border-amber-500/30" }
+    ],
+    "emotions": {
+      "neutral": "bg-slate-500/15 text-slate-300 border-slate-500/30",
+      "happy": "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+      "sad": "bg-blue-500/15 text-blue-400 border-blue-500/30",
+      "angry": "bg-rose-500/15 text-rose-400 border-rose-500/30",
+      "fearful": "bg-purple-500/15 text-purple-400 border-purple-500/30",
+      "surprised": "bg-amber-500/15 text-amber-400 border-amber-500/30"
+    }
+  },
+  "layout_and_grid": {
+    "header": "Glassmorphic navbar with backdrop-blur-md, Modulate Velma-2 badge, active audio waveform indicator, history toggle, and theme switch.",
+    "main_container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6",
+    "grid_structure": "MODE A: TETRIS GRID for Dashboard Workbench - Left/Main side (8 cols) for Dropzone / Player / Interactive Transcript, Right side (4 cols) for Modulate Velma-2 Parameters & Intelligence Toggles.",
+    "history_view": "Full-width analytical table with filters, search, quick replay player, and multi-format download buttons."
+  },
+  "key_components": [
+    {
+      "name": "HeaderNav",
+      "description": "Top fixed navbar with Modulate Velma-2 AI logo, status indicator, history modal/tab button, light/dark mode switch.",
+      "testid": "header-nav"
+    },
+    {
+      "name": "FileUploadZone",
+      "description": "Interactive drag-and-drop zone with audio/video waveform visualizer, progress bar, sample audio selector buttons (ru samples), and file specs.",
+      "testid": "file-upload-zone"
+    },
+    {
+      "name": "ModulateParamSwitches",
+      "description": "Card component containing switches for: Speaker Diarization (Диаризация спикеров), Emotion Signal (Сигнал эмоций), Accent Detection (Определение акцента), Deepfake Detection (Детекция дипфейков), PII/PHI Redaction Tags (Теги PII/PHI).",
+      "testid": "modulate-params-card"
+    },
+    {
+      "name": "AudioWaveformPlayer",
+      "description": "Integrated HTML5 Audio/Video player synced with transcript segment timestamps, with play/pause, seek slider, speed control (0.75x to 2x), and current time display.",
+      "testid": "audio-player-container"
+    },
+    {
+      "name": "TranscriptWorkbench",
+      "description": "Dual view container: Full text view + Segmented timeline view with timestamp badges, speaker pills, emotion tags, search/filter bar, and line click-to-seek playback.",
+      "testid": "transcript-workbench"
+    },
+    {
+      "name": "DownloadActions",
+      "description": "Export action buttons for TXT (Сплошной текст), SRT (Субтитры с таймкодами), JSON (Полная структура Modulate API).",
+      "testid": "download-actions"
+    },
+    {
+      "name": "HistoryDrawer",
+      "description": "Modal or panel listing previous transcriptions stored in LocalStorage/Backend API with search, audio re-playback, and instant download.",
+      "testid": "history-drawer"
+    }
+  ],
+  "image_urls": [
+    {
+      "category": "audio_waveform_bg",
+      "url": "https://images.unsplash.com/photo-1724185773486-0b39642e607e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2MzR8MHwxfHNlYXJjaHwyfHxzb3VuZCUyMHdhdmUlMjBhdWRpbyUyMHdhdmVmb3JtJTIwc3BlY3RydW0lMjBkYXJrJTIwc3R1ZGlvfGVufDB8fHx8MTc5MTQ1NDEyNXww&ixlib=rb-4.1.0&q=85",
+      "description": "Vibrant acoustic spectrum visualization on dark background"
+    },
+    {
+      "category": "audio_spectrum_abstract",
+      "url": "https://images.unsplash.com/photo-1617994452722-4145e196248b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2MzR8MHwxfHNlYXJjaHwxfHxzb3VuZCUyMHdhdmUlMjBhdWRpbyUyMHdhdmVmb3JtJTIwc3BlY3RydW0lMjBkYXJrJTIwc3R1ZGlvfGVufDB8fHx8MTc5MTQ1NDEyNXww&ixlib=rb-4.1.0&q=85",
+      "description": "Blue digital audio wave on dark studio background"
+    }
+  ],
+  "testing_and_qa": {
+    "required_data_testids": [
+      "header-nav",
+      "theme-toggle-button",
+      "history-open-button",
+      "file-dropzone-input",
+      "file-upload-button",
+      "sample-audio-btn-1",
+      "sample-audio-btn-2",
+      "switch-diarization",
+      "switch-emotions",
+      "switch-accent",
+      "switch-deepfake",
+      "switch-pii-redaction",
+      "transcribe-submit-button",
+      "processing-progress-bar",
+      "transcript-full-text-tab",
+      "transcript-segments-tab",
+      "search-transcript-input",
+      "download-txt-button",
+      "download-srt-button",
+      "download-json-button",
+      "history-item-row",
+      "audio-player-play-btn"
+    ]
+  },
+  "instructions_to_main_agent": [
+    "1. Use Russian text in all UI headers, switches, buttons, and notifications.",
+    "2. Ensure header has dark semi-transparent glassmorphism with backdrop-blur-xl (never fully transparent).",
+    "3. Build interactive switches for all Modulate Velma-2 options with informative tooltips in Russian.",
+    "4. Implement real file drag-and-drop + file validation (audio/wav, audio/mp3, audio/m4a, video/mp4, video/webm).",
+    "5. Provide pre-loaded Russian audio samples for immediate zero-friction testing.",
+    "6. Include synchronized audio playback where clicking a transcript segment jumps audio current time to that segment's timestamp.",
+    "7. Format downloads cleanly: TXT with clean paragraph text, SRT with standard sequence index, timecodes (00:00:00,000 --> 00:00:02,500), and speaker name, JSON with full Modulate Velma-2 payload structure.",
+    "8. Persist history to localStorage or backend database so past transcriptions can be retrieved and re-exported.",
+    "9. Add data-testid to every interactive component for automated testing compliance."
+  ]
+}
