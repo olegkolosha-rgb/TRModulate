@@ -1,3 +1,5 @@
 {
-  "env_image_name": "fastapi_vite_shadcn_cloud_arm:release-05102026-2"
+  "env_image_name": "fastapi_vite_shadcn_cloud_arm:release-05102026-2",
+  "job_id": "5aede293-6744-473f-b0c6-834db9f34dd0",
+  "created_at": "2026-10-09T06:52:11.001305+00:00Z"
 }
